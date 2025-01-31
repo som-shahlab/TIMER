@@ -162,7 +162,6 @@ def validate_response_data(response_data):
 def load_generated_evaluation(input_folder: str) -> List[Dict]:
     """Load generated instruction-response pairs from nested directory structure"""
     data = []
-    # Navigate to the temporal_eval/context_size directory
     eval_dir = Path(input_folder)
     if not eval_dir.exists():
         raise ValueError(f"Directory not found: {eval_dir}")
@@ -173,7 +172,6 @@ def load_generated_evaluation(input_folder: str) -> List[Dict]:
         with open(json_file, 'r') as f:
             try:
                 json_data = json.load(f)
-                # Validate required fields
                 if all(k in json_data for k in ['person_id', 'response_data']):
                     json_data['person_id'] = str(json_data['person_id'])
                     json_data['filename'] = f"EHR_{json_data['person_id']}.xml"
@@ -211,7 +209,6 @@ def create_inference_csv(eval_data: List[Dict], ehrs: Dict[str, Dict], context_s
     rows = []
     print("Creating inference CSV rows...")
     
-    # Initialize tokenizer
     tokenizer = get_tokenizer()
     prompt_template = """
         You are an expert medical doctor. Based on the provided electronic health record (EHR), please respond to the following question.
@@ -363,18 +360,7 @@ def create_reference_csv(eval_data: List[Dict], output_path: str, instruction_id
                         'is_sufficient': 'yes',
                         'required_characteristics': '',
                         'clinician_response': response,
-                        'annotator_email': 'synthetic@example.com',
-                        'person_id': person_id,
-                        'score': 100,
-                        'is_relevant': 'yes',
                         'evidence': inst_response.get('evidence', ''),
-                        'other_notes': '',
-                        'submitter_email': 'synthetic@example.com',
-                        'annotator_num': 'Annotator_1',
-                        'unq_instruction_id': random.randint(1000000000, 9999999999),
-                        'submitter_id': random.randint(1000000000, 9999999999),
-                        'submitter_specialty': 'Internal Medicine',
-                        'reviewer_id': random.randint(1000000000, 9999999999)
                     })
                 except Exception as e:
                     print(f"Error processing instruction {i} for person_id {person_id}: {e}")
@@ -412,7 +398,6 @@ def sample_exact_instructions(eval_data: List[Dict], total_instructions: int, in
     print(f"Target total instructions: {total_instructions}")
     print(f"Instructions per person: {instructions_per_person}")
     
-    # Calculate needed number of patients
     needed_patients = total_instructions // instructions_per_person
     if total_instructions % instructions_per_person != 0:
         print(f"Warning: {total_instructions} is not divisible by {instructions_per_person}")
@@ -432,8 +417,7 @@ def sample_exact_instructions(eval_data: List[Dict], total_instructions: int, in
             f"Not enough eligible patients! Need {needed_patients} but only found {len(eligible_patients)} "
             f"with {instructions_per_person} or more instructions."
         )
-    
-    # Randomly sample the needed number of patients
+
     import random
     sampled_patients = random.sample(eligible_patients, needed_patients)
     
@@ -444,10 +428,8 @@ def sample_exact_instructions(eval_data: List[Dict], total_instructions: int, in
         person_id = str(item.get('person_id', ''))
         response_data = validate_response_data(item.get('response_data', []))
         
-        # Randomly sample exact number of instructions for this person
         sampled_responses = random.sample(response_data, instructions_per_person)
         
-        # Create new item with sampled responses
         sampled_item = {
             'person_id': person_id,
             'filename': item.get('filename'),
@@ -472,21 +454,17 @@ def sample_exact_instructions(eval_data: List[Dict], total_instructions: int, in
 def main():
     args = parse_args()
     
-    # Check if reference CSV exists
     if os.path.exists(args.output_reference_csv):
         print(f"\nFound existing reference CSV at {args.output_reference_csv}")
         print("Will only export XML files for existing person_ids...")
         
-        # Read the reference CSV
         df = pd.read_csv(args.output_reference_csv)
         person_ids = df['person_id'].astype(str).unique()
         print(f"Found {len(person_ids)} unique person IDs in reference answers")
         
-        # Load materialized EHRs
         print("\nLoading materialized EHRs...")
         ehrs = load_materialized_ehrs(args.materialized_ehr_folder)
         
-        # Export EHRs to XML for the person_ids from reference answers
         print(f"\nExporting EHRs to XML format to {args.output_xml_dir}...")
         exported_count = 0
         missing_count = 0
@@ -505,14 +483,11 @@ def main():
         print(f"Missing EHRs: {missing_count}")
         
     else:
-        # Original workflow for new runs
         print("\nNo existing reference CSV found. Running full workflow...")
         
-        # Load materialized EHRs
         print("\nStep 1: Loading materialized EHRs...")
         ehrs = load_materialized_ehrs(args.materialized_ehr_folder)
         
-        # Load generated evaluation data
         print("\nStep 2: Loading generated evaluation data...")
         eval_data = load_generated_evaluation(args.input_folder)
         
@@ -520,14 +495,12 @@ def main():
             print("Error: No evaluation data loaded!")
             return
             
-        # Perform stratified sampling
         sampled_data = sample_exact_instructions(
             eval_data, 
             args.total_instructions,
             args.instructions_per_person
         )
         
-        # Export EHRs to XML for sampled patients
         print(f"\nStep 2.5: Exporting EHRs to XML format to {args.output_xml_dir}...")
         sampled_person_ids = {str(item['person_id']) for item in sampled_data}
         exported_count = 0
@@ -546,14 +519,11 @@ def main():
         print(f"Successfully exported: {exported_count}")
         print(f"Missing EHRs: {missing_count}")
         
-        # Create instruction IDs mapping
         instruction_ids = create_instruction_ids(sampled_data)
         
-        # Create CSV for inference.py with truncated EHRs
         print("\nStep 3: Creating inference input CSV...")
         create_inference_csv(sampled_data, ehrs, args.ehr_context, args.output_inference_csv, instruction_ids)
         
-        # Create CSV for llm_as_judge.py
         print("\nStep 4: Creating reference answers CSV...")
         create_reference_csv(sampled_data, args.output_reference_csv, instruction_ids)
 

@@ -1,4 +1,4 @@
-name: synth-instruct
+name: timer
 channels:
   - conda-forge
   - defaults

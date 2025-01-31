@@ -176,7 +176,6 @@ def save_window_to_jsonl(window_data: Dict[str, Any], patient_timeline: Dict[str
     Optimized for minimal dictionary operations.
     """
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    # Don't clear the file each time, as we're appending multiple windows
     if not output_path.exists():
         output_path.touch()
 
@@ -304,8 +303,6 @@ def create_persona_prompt_from_timeline(
     return full_prompt, specialty, visit_occurrence_id
 
 
-# for generating temporal evaluation set
-
 def create_context_window_for_eval(
     tree: etree._Element,
     window_size: int,
@@ -322,7 +319,7 @@ def create_context_window_for_eval(
         Dictionary containing the most recent EHR window that fits within token limit
     """
     visits = tree.xpath("//visit")
-    if len(visits) < 3:  # Ensure we have enough visits for temporal evaluation
+    if len(visits) < 3: 
         return None
         
     visit_strs = [etree.tostring(visit, pretty_print=True).decode() for visit in reversed(visits)]
@@ -337,7 +334,7 @@ def create_context_window_for_eval(
         current_window.append(visit_str)
         current_length += visit_length
     
-    if len(current_window) < 3:  # Ensure window contains enough visits
+    if len(current_window) < 3:  
         return None
         
     window_xml = f'<patient>\n{"".join(current_window)}</patient>'

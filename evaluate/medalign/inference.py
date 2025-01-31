@@ -237,13 +237,12 @@ def inference_openai(
             print(f"Failed to get response for instruction {inst_id}")
             output_map[inst_id] = "[Error: Failed to generate response]"
         
-        # Add delay between requests to prevent rate limiting
-        if idx % 10 == 0:  # Add longer pause every 10 requests
+        if idx % 10 == 0:  
             pause_time = 30
             print(f"Taking a {pause_time}-second pause after {idx} requests...")
             time.sleep(pause_time)
         else:
-            time.sleep(3)  # Base delay between requests
+            time.sleep(3)  
 
     return output_map
 
@@ -330,7 +329,6 @@ def inference_claude(
                         print(f"Successfully processed instruction {inst_id}")
                         continue
                 
-                # Fallback handlers
                 if "completion" in response:
                     output_map[inst_id] = response["completion"]
                 elif "text" in response:
@@ -347,19 +345,19 @@ def inference_claude(
             output_map[inst_id] = f"[Error: {str(e)}]"
             
         # Add delay between requests to prevent rate limiting
-        if idx % 10 == 0:  # Add longer pause every 10 requests
+        if idx % 10 == 0:  
             pause_time = 30
             print(f"Taking a {pause_time}-second pause after {idx} requests...")
             time.sleep(pause_time)
         else:
-            time.sleep(3)  # Base delay between requests
+            time.sleep(3)  
 
     return output_map
 
 def inference_medpalm(
     prompt_map: Dict[int, str],
     model_name: str,
-    context_length: int = 16384,  # Added context_length parameter
+    context_length: int = 16384,  
     temperature: float = 0.2,
     top_p: float = 0.8,
     do_sample: bool = True,
@@ -379,7 +377,6 @@ def inference_medpalm(
     Returns:
         Dictionary mapping instruction IDs to generated responses
     """
-    # Imports specific for MedLM
     from google.cloud import aiplatform
     from google.cloud.aiplatform.gapic.schema import predict
     from google.protobuf import json_format
@@ -457,7 +454,7 @@ def inference_medpalm(
         for prediction in predictions:
             output_map[inst_id] = dict(prediction)["content"]
             print(f"instruction = {truncated_instruction}\nprediction = {output_map[inst_id]}")
-            time.sleep(10)  # Rate limiting
+            time.sleep(10)  
             
     return output_map
 
@@ -467,7 +464,6 @@ def main():
     print(f"Model name: {args.model}")
     model_name = args.model
     
-    # Load prompts
     packed_prompts_df = pd.read_csv(args.path_to_prompts)
     instructionid_to_prompt_map = (
         packed_prompts_df[["instruction_id", "prompt"]]
@@ -476,7 +472,6 @@ def main():
         .get("prompt")
     )
 
-    # Generate LLM responses
     print("Running prompts through the model...")
     if model_name.lower() in ["gpt-4o", "gpt-4-32k"]:
         outputs = inference_openai(
@@ -488,7 +483,7 @@ def main():
         outputs = inference_medpalm(
             instructionid_to_prompt_map,
             model_name.lower(),
-            context_length=args.context_length,  # Add this line
+            context_length=args.context_length, 
             generation_length=args.generation_length,
         )
     elif model_name.lower() == "claude-3.5-sonnet":
@@ -506,7 +501,6 @@ def main():
             generation_length=args.generation_length,
         )
 
-    # Pack results into DataFrame and save
     output_df_rows = []
     for _, row in packed_prompts_df.iterrows():
         instruction_id = row["instruction_id"]

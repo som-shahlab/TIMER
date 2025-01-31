@@ -18,5 +18,5 @@ def count_instructions(file_path):
         print(f"An error occurred: {str(e)}")
 
 if __name__ == "__main__":
-    file_path = TODO
+    file_path = "path/to/your/file.json"
     count_instructions(file_path)

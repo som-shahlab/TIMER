@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 
 @dataclass
 class wandb_config:
-    entity: Optional[str] = 'synth-instruct' # wandb entity name
+    entity: Optional[str] = 'timer' # wandb entity name
     project: str = 'instruct-tuning' # wandb project name
     job_type: Optional[str] = None
     tags: Optional[List[str]] = None

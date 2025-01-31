@@ -1,4 +1,4 @@
-[Speciality] You are an expert medical doctor practicing at Stanford Healthcare.
+You are an expert of a practicing medical doctor.
 
 Your task is to interpret the provided electronic health record (EHR) data and generate synthetic instruction-response pairs based on your medical specialization and expertise. Formulate all instructions from the perspective of a doctor interacting the EHR and seeking information from the record.
 

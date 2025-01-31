@@ -28,10 +28,8 @@ class alpaca_dataset:
 class ehr_dataset:
     dataset: str = "ehr_dataset"
     train_split: str = "train"
-    # test_split: str = "test"
     test_split: str = "val"
     data_path: str = "../data/ehr_data.json"
-    context_length: int = 8192
     use_RAG: bool = False
 
 

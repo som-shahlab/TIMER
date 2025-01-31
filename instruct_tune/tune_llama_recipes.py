@@ -29,7 +29,6 @@ from llama_recipes.configs import train_config as TRAIN_CONFIG
 from llama_recipes.data.concatenator import ConcatDataset
 from llama_recipes.policies import AnyPrecisionAdamW, apply_fsdp_checkpointing
 
-# from llama_recipes.utils import fsdp_auto_wrap_policy
 from utils.fsdp_utils import fsdp_auto_wrap_policy, hsdp_device_mesh
 from long_context_synthetic_evaluation import evaluate_medalign
 
@@ -180,7 +179,6 @@ def main(**kwargs):
 
     if train_config.enable_fsdp:
         setup()
-        # torchrun specific
         local_rank = int(os.environ["LOCAL_RANK"])
         rank = int(os.environ["RANK"])
         world_size = int(os.environ["WORLD_SIZE"])
@@ -199,7 +197,6 @@ def main(**kwargs):
         if not train_config.enable_fsdp or rank==0:
             wandb_run = setup_wandb(train_config, fsdp_config, **kwargs)
 
-    # Load the pre-trained model and setup its configuration
     use_cache = False if train_config.enable_fsdp else None
     if train_config.enable_fsdp and train_config.low_cpu_fsdp:
         """
@@ -211,7 +208,6 @@ def main(**kwargs):
         if rank == 0:
             model = LlamaForCausalLM.from_pretrained(
                 train_config.model_name,
-                # load_in_8bit=True if train_config.quantization else None,
                 load_in_4bit=True if train_config.quantization else None,
                 device_map="auto" if train_config.quantization else None,
                 use_cache=use_cache,
@@ -227,13 +223,10 @@ def main(**kwargs):
         print('llama model loading')
         model = LlamaForCausalLM.from_pretrained(
             train_config.model_name,
-            # load_in_8bit=True if train_config.quantization else None,
             load_in_4bit=True if train_config.quantization else None,
             device_map="auto" if train_config.quantization else None,
             use_cache=use_cache,
-            # attn_implementation="flash_attention_2",
             torch_dtype=torch.bfloat16
-            # attn_implementation="sdpa" if train_config.use_fast_kernels else None,
         )
 
     # Load the tokenizer and add special tokens
@@ -340,7 +333,6 @@ def main(**kwargs):
     train_dl_kwargs = get_dataloader_kwargs(train_config, dataset_train, tokenizer, "train")
     
     # Create DataLoaders for the training and validation dataset
-
     train_dataloader = torch.utils.data.DataLoader(
         dataset_train,
         num_workers=train_config.num_workers_dataloader,
@@ -446,27 +438,9 @@ def main(**kwargs):
             else:
                 save_model_checkpoint(model, optimizer, rank, train_config, epoch=epoch, output_dir=current_model_path)
 
-        # Ensure all processes have finished saving
         if train_config.enable_fsdp:
             torch.distributed.barrier()
 
-
-    def evaluate_MMLU(train_config, epoch):
-        pretrain_str = f'pretrained={train_config.model_name}'
-        # dtype_str = 'dtype="float"'
-        peft_str = f'peft={os.path.join(train_config.output_dir, f"model_epoch_{epoch}")}'
-        model_arg_str = str(pretrain_str+','+peft_str+',trust_remote_code=True')
-        # model_arg_str = str(pretrain_str)+",trust_remote_code=True"
-        print(f"model_arg_str: {model_arg_str}")
-
-        results = lm_eval.simple_evaluate(
-            model='hf',
-            model_args=model_arg_str,
-            tasks=["mmlu"],
-            batch_size=8,
-            limit=2000,
-        )
-        return results
 
     def lm_eval_medalign(train_config, epoch):
         pretrain_str = f'pretrained={train_config.model_name}'

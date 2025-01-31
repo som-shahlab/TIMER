@@ -8,7 +8,6 @@ def calculate_bin_uniformity_score(bin_counts):
     Calculate uniformity score for 10 bins.
     Returns coefficient of variation (lower is better).
     """
-    # Handle pandas Series
     if isinstance(bin_counts, pd.Series):
         bin_counts_array = bin_counts.to_numpy()
     else:
@@ -41,11 +40,10 @@ def create_10bin_uniform_sample(input_csv, reference_file, target_size=None, num
     NUM_BINS = 10
     df = pd.read_csv(input_csv)
     
-    # Create bins
     bin_edges = np.linspace(0, 1, NUM_BINS + 1)
     df['bin'] = pd.cut(df['relative_position'], 
                       bins=bin_edges, 
-                      labels=range(NUM_BINS),  # Use numeric labels
+                      labels=range(NUM_BINS),  
                       include_lowest=True)
     
     # Calculate initial bin counts and target size
@@ -70,12 +68,10 @@ def create_10bin_uniform_sample(input_csv, reference_file, target_size=None, num
         bin_samples = defaultdict(int)
         used_indices = set()
         
-        # First pass: Try to get diverse person coverage across bins
         persons = list(person_bins.keys())
         np.random.shuffle(persons)
         
         for person_id in persons:
-            # Try to sample from each bin this person has data in
             for bin_idx in sorted(person_bins[person_id]):
                 if bin_samples[bin_idx] >= samples_per_bin:
                     continue
@@ -92,7 +88,6 @@ def create_10bin_uniform_sample(input_csv, reference_file, target_size=None, num
                     used_indices.add(sampled_idx)
                     bin_samples[bin_idx] += 1
         
-        # Second pass: Fill remaining slots in each bin
         for bin_idx in range(NUM_BINS):
             remaining = samples_per_bin - bin_samples[bin_idx]
             if remaining <= 0:
@@ -112,10 +107,8 @@ def create_10bin_uniform_sample(input_csv, reference_file, target_size=None, num
                 sampled_indices.extend(additional_samples)
                 bin_samples[bin_idx] += len(additional_samples)
         
-        # Evaluate this attempt
-        if sampled_indices:  # Check if we have any samples
+        if sampled_indices:  
             current_sampled_df = df.loc[sampled_indices].copy()
-            # Create a complete bin count series with all bins
             bin_counts = pd.Series(0, index=range(NUM_BINS))
             current_counts = current_sampled_df['bin'].value_counts()
             bin_counts.update(current_counts)
@@ -130,10 +123,8 @@ def create_10bin_uniform_sample(input_csv, reference_file, target_size=None, num
     if best_sampled_df is None:
         raise ValueError("Could not create a valid sample")
     
-    # Match instruction IDs
     best_sampled_df = match_instruction_ids(best_sampled_df, reference_file)
     
-    # Print statistics
     print("\nFinal Statistics:")
     print(f"Original samples: {len(df)}")
     print(f"Sampled: {len(best_sampled_df)}")
@@ -148,10 +139,8 @@ def create_10bin_uniform_sample(input_csv, reference_file, target_size=None, num
         count = final_bins.get(bin_idx, 0)
         print(f"Bin {bin_idx+1}: {count} samples ({count/total_samples*100:.1f}%)")
     
-    # Visualize the distributions
     plt.figure(figsize=(15, 5))
     
-    # Original distribution
     plt.subplot(1, 3, 1)
     plt.hist(df['relative_position'], bins=NUM_BINS, density=True, alpha=0.6)
     plt.title('Original Distribution')
@@ -159,7 +148,6 @@ def create_10bin_uniform_sample(input_csv, reference_file, target_size=None, num
     plt.ylabel('Density')
     plt.grid(True, alpha=0.3)
     
-    # Sampled distribution
     plt.subplot(1, 3, 2)
     plt.hist(best_sampled_df['relative_position'], bins=NUM_BINS, density=True, alpha=0.6)
     plt.title(f'Sampled Distribution\n(n={len(best_sampled_df)})')
@@ -167,7 +155,6 @@ def create_10bin_uniform_sample(input_csv, reference_file, target_size=None, num
     plt.ylabel('Density')
     plt.grid(True, alpha=0.3)
     
-    # Bin counts
     plt.subplot(1, 3, 3)
     complete_counts = pd.Series(0, index=range(NUM_BINS))
     complete_counts.update(final_bins)
@@ -183,7 +170,6 @@ def create_10bin_uniform_sample(input_csv, reference_file, target_size=None, num
     plt.savefig('distribution_comparison.png')
     plt.close()
     
-    # Drop the bin column and ensure instruction_id is first
     best_sampled_df = best_sampled_df.drop('bin', axis=1)
     cols = ['instruction_id'] + [col for col in best_sampled_df.columns if col != 'instruction_id']
     best_sampled_df = best_sampled_df[cols]
@@ -194,14 +180,12 @@ def main():
     input_csv = "../plot/temporal_distribution_bench.csv"
     reference_file = "../result/reviewed_eval_inference_input.csv"
     
-    # Create optimized sample with 10 bins
     sampled_df = create_10bin_uniform_sample(
         input_csv,
         reference_file,
-        target_size=None  # Will determine based on minimum bin count
+        target_size=None  
     )
     
-    # Save the sampled data
     output_path = "../plot/uniform_sampled_distribution.csv"
     sampled_df.to_csv(output_path, index=False)
     print(f"\nSaved optimized sample to '{output_path}'")

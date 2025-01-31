@@ -5,14 +5,8 @@ from pathlib import Path
 
 import torch
 
-# from llama_recipes.datasets import (
-#     get_grammar_dataset,
-#     get_alpaca_dataset,
-#     get_samsum_dataset,
-# )
 
 from dataset import (
-    # get_alpaca_dataset,
     get_ehr_dataset,
 )
 
@@ -52,7 +46,6 @@ def get_custom_dataset(dataset_config, tokenizer, split: str):
 
 
 DATASET_PREPROC = {
-    # "alpaca_dataset": partial(get_alpaca_dataset),
     "ehr_dataset": partial(get_ehr_dataset),
     "custom_dataset": get_custom_dataset,
 }

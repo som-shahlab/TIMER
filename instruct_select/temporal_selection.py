@@ -11,7 +11,6 @@ def check_output_exists(output_dir):
         return False
     if not os.path.exists(output_dir):
         return False
-    # Check if directory contains any JSON files
     return any(f.endswith('.json') for f in os.listdir(output_dir))
 
 def get_person_id_from_filename(filename):
@@ -43,7 +42,6 @@ def collect_and_process_pairs(input_folder, last_25_output=None, last_10_output=
                             span_100_output=None, balanced_100_output=None, 
                             num_bins=10, sample_size=5000):
     """Process pairs with dataset-level sampling and temporal distribution control"""
-    # Check which outputs need processing
     outputs_to_process = []
     if last_25_output and not check_output_exists(last_25_output):
         outputs_to_process.append(('last_25', last_25_output))
@@ -59,19 +57,16 @@ def collect_and_process_pairs(input_folder, last_25_output=None, last_10_output=
         return
 
     print("\nCollecting valid pairs...")
-    all_valid_pairs = []  # Store all valid pairs across files
-    file_to_pairs = defaultdict(list)  # Track which pairs belong to which file
+    all_valid_pairs = []  
+    file_to_pairs = defaultdict(list)  
     
-    # Track unique person_ids in input data
     input_person_ids = set()
     
-    # First, collect all input person_ids from filenames
     for filename in os.listdir(input_folder):
         person_id = get_person_id_from_filename(filename)
         if person_id:
             input_person_ids.add(person_id)
     
-    # Collect all valid pairs while maintaining file association
     for filename in os.listdir(input_folder):
         if not filename.endswith('.json'):
             continue
@@ -147,7 +142,6 @@ def collect_and_process_pairs(input_folder, last_25_output=None, last_10_output=
     if len(file_to_pairs) < 1:
         raise ValueError("No valid files found")
 
-    # Get person_ids from existing outputs if we need to sample last 10%
     existing_person_ids = None
     if ('last_10', last_10_output) in outputs_to_process:
         print("\nCollecting existing person_ids for last 10% sampling...")
@@ -155,7 +149,6 @@ def collect_and_process_pairs(input_folder, last_25_output=None, last_10_output=
                               if d and os.path.exists(d)]
         existing_person_ids = get_existing_person_ids(existing_output_dirs)
         
-        # Debug info about person_ids
         print("\nPerson ID Analysis:")
         print(f"Input person_ids: {len(input_person_ids)}")
         print(f"Existing person_ids: {len(existing_person_ids)}")
@@ -168,7 +161,6 @@ def collect_and_process_pairs(input_folder, last_25_output=None, last_10_output=
             print("Sample input person_ids:", list(input_person_ids)[:5])
             print("Sample existing person_ids:", list(existing_person_ids)[:5])
     
-    # Perform sampling for each method that needs processing
     for output_type, output_dir in outputs_to_process:
         if output_type == 'last_25':
             process_last_25_sampling(all_valid_pairs, file_to_pairs, sample_size, output_dir)
@@ -185,14 +177,12 @@ def process_last_25_sampling(all_pairs, file_to_pairs, sample_size, output_dir):
     """Sample from the last quarter at dataset level while ensuring sample size"""
     print("\nProcessing last 25% selection...")
     
-    # Get pairs from last quarter across all files
     last_quarter_pairs = [pair for pair in all_pairs if pair['relative_position'] >= 0.75]
     print(f"Pairs in last quarter: {len(last_quarter_pairs)}")
     
     if len(last_quarter_pairs) < sample_size:
         raise ValueError(f"Not enough pairs in last quarter. Found {len(last_quarter_pairs)}, need {sample_size}")
     
-    # Count how many files have last quarter data
     files_with_last_quarter = set()
     for filename, file_pairs in file_to_pairs.items():
         if any(p['relative_position'] >= 0.75 for p in file_pairs):
@@ -200,11 +190,9 @@ def process_last_25_sampling(all_pairs, file_to_pairs, sample_size, output_dir):
     
     print(f"Files with last quarter data: {len(files_with_last_quarter)} out of {len(file_to_pairs)}")
     
-    # Sample pairs from files with last quarter data
     sampled_pairs = []
     files_covered = set()
     
-    # First, sample one pair from each file that has last quarter pairs
     for filename in files_with_last_quarter:
         file_pairs = [p for p in file_to_pairs[filename] if p['relative_position'] >= 0.75]
         if file_pairs:
@@ -212,10 +200,8 @@ def process_last_25_sampling(all_pairs, file_to_pairs, sample_size, output_dir):
             sampled_pairs.append(selected_pair)
             files_covered.add(filename)
     
-    # Then sample remaining pairs randomly from last quarter to reach sample_size
     remaining_needed = sample_size - len(sampled_pairs)
     if remaining_needed > 0:
-        # Include ALL last quarter pairs except those already sampled
         remaining_pairs = [p for p in last_quarter_pairs if p not in sampled_pairs]
         if remaining_pairs:
             additional_samples = np.random.choice(
@@ -236,16 +222,13 @@ def process_span_sampling(all_pairs, file_to_pairs, sample_size, output_dir):
     sampled_pairs = []
     files_covered = set()
     
-    # First, sample one pair from each file
     for filename, file_pairs in file_to_pairs.items():
         selected_pair = np.random.choice(file_pairs)
         sampled_pairs.append(selected_pair)
         files_covered.add(filename)
     
-    # Then sample remaining pairs randomly to reach sample_size
     remaining_needed = sample_size - len(sampled_pairs)
     if remaining_needed > 0:
-        # Here's the key change: Include ALL pairs in the sampling pool
         remaining_pairs = [p for p in all_pairs if p not in sampled_pairs]
         if remaining_pairs:
             additional_samples = np.random.choice(
@@ -263,11 +246,9 @@ def process_balanced_sampling(all_pairs, file_to_pairs, sample_size, output_dir,
     """Sample equally from temporal bins while ensuring file coverage"""
     print("\nProcessing balanced selection...")
     
-    # Calculate target samples per bin
     target_per_bin = sample_size // num_bins
     print(f"Target samples per bin: {target_per_bin}")
     
-    # Distribute all pairs into bins
     bin_edges = np.linspace(0, 1, num_bins + 1)
     binned_pairs = defaultdict(list)
     
@@ -277,18 +258,15 @@ def process_balanced_sampling(all_pairs, file_to_pairs, sample_size, output_dir,
             bin_idx = num_bins - 1
         binned_pairs[bin_idx].append(pair)
     
-    # First pass: Try to get one pair from each file, distributed across bins
     sampled_pairs = []
     files_covered = set()
     current_bin_counts = defaultdict(int)
     
-    # Shuffle files to randomize selection
     files = list(file_to_pairs.keys())
     np.random.shuffle(files)
     
     for filename in files:
         file_pairs = file_to_pairs[filename]
-        # Group file pairs by bin
         file_bin_pairs = defaultdict(list)
         for pair in file_pairs:
             bin_idx = np.digitize(pair['relative_position'], bin_edges) - 1
@@ -296,7 +274,6 @@ def process_balanced_sampling(all_pairs, file_to_pairs, sample_size, output_dir,
                 bin_idx = num_bins - 1
             file_bin_pairs[bin_idx].append(pair)
         
-        # Find bin with lowest count that has pairs from this file
         valid_bins = [
             bin_idx for bin_idx, pairs in file_bin_pairs.items()
             if current_bin_counts[bin_idx] < target_per_bin
@@ -308,17 +285,15 @@ def process_balanced_sampling(all_pairs, file_to_pairs, sample_size, output_dir,
             sampled_pairs.append(selected_pair)
             files_covered.add(filename)
             current_bin_counts[selected_bin] += 1
-    
-    # Second pass: Fill up each bin to reach target_per_bin
+
     for bin_idx in range(num_bins):
         remaining_needed = target_per_bin - current_bin_counts[bin_idx]
         if remaining_needed <= 0:
             continue
             
-        # Include ALL pairs in this bin except those already sampled
         eligible_pairs = [
             p for p in binned_pairs[bin_idx]
-            if p not in sampled_pairs  # Only exclude already sampled pairs
+            if p not in sampled_pairs 
         ]
         
         if eligible_pairs:
@@ -330,7 +305,6 @@ def process_balanced_sampling(all_pairs, file_to_pairs, sample_size, output_dir,
             sampled_pairs.extend(additional_samples)
             current_bin_counts[bin_idx] += len(additional_samples)
     
-    # Print bin distribution
     print("\nFinal bin distribution:")
     for bin_idx in range(num_bins):
         bin_start = bin_edges[bin_idx]
@@ -346,17 +320,14 @@ def process_last_n_sampling(all_pairs, file_to_pairs, sample_size, output_dir, t
     """Sample from the last N% at dataset level while ensuring sample size"""
     print(f"\nProcessing last {name}% selection...")
     
-    # Get pairs from last N% across all files
     last_n_pairs = [pair for pair in all_pairs if pair['relative_position'] >= threshold]
     print(f"Pairs in last {name}%: {len(last_n_pairs)}")
     
-    # Print sample of pairs before filtering
     if len(last_n_pairs) > 0:
         print("\nSample pairs before filtering:")
         for pair in last_n_pairs[:3]:
             print(f"Person ID: {pair['person_id']}, Relative Position: {pair['relative_position']}")
     
-    # Filter pairs based on existing_person_ids if provided
     if existing_person_ids:
         last_n_pairs = [pair for pair in last_n_pairs if pair['person_id'] in existing_person_ids]
         print(f"Pairs after filtering for existing person_ids: {len(last_n_pairs)}")
@@ -369,15 +340,12 @@ def process_last_n_sampling(all_pairs, file_to_pairs, sample_size, output_dir, t
     if len(last_n_pairs) < sample_size:
         raise ValueError(f"Not enough pairs in last {name}%. Found {len(last_n_pairs)}, need {sample_size}")
     
-    # Count how many files have last N% data
     files_with_last_n = {pair['source_file'] for pair in last_n_pairs}
     print(f"Files with last {(1-threshold)*100:.0f}% data: {len(files_with_last_n)} out of {len(file_to_pairs)}")
     
-    # Sample pairs from files with last N% data
     sampled_pairs = []
     files_covered = set()
     
-    # First, sample one pair from each file that has last N% pairs
     for filename in files_with_last_n:
         file_pairs = [p for p in file_to_pairs[filename] if p['relative_position'] >= threshold]
         if file_pairs and (not existing_person_ids or any(p['person_id'] in existing_person_ids for p in file_pairs)):
@@ -387,7 +355,6 @@ def process_last_n_sampling(all_pairs, file_to_pairs, sample_size, output_dir, t
                 sampled_pairs.append(selected_pair)
                 files_covered.add(filename)
     
-    # Then sample remaining pairs randomly from last N% to reach sample_size
     remaining_needed = sample_size - len(sampled_pairs)
     if remaining_needed > 0:
         remaining_pairs = [p for p in last_n_pairs if p not in sampled_pairs]
@@ -405,7 +372,6 @@ def process_last_n_sampling(all_pairs, file_to_pairs, sample_size, output_dir, t
 
 def save_sampled_pairs(pairs, output_dir):
     """Save the sampled pairs grouped by person_id and window_index"""
-    # Group by person and window
     grouped_pairs = defaultdict(lambda: defaultdict(list))
     for pair in pairs:
         grouped_pairs[pair['person_id']][pair['window_index']].append({
@@ -414,13 +380,10 @@ def save_sampled_pairs(pairs, output_dir):
             'evidence': pair['evidence']
         })
     
-    # Create output directory
     os.makedirs(output_dir, exist_ok=True)
     
-    # Save each person's windows
     for person_id, windows in grouped_pairs.items():
         for window_index, response_data in windows.items():
-            # Get any pair for this window to get dates
             sample_pair = next(p for p in pairs 
                              if p['person_id'] == person_id and p['window_index'] == window_index)
             

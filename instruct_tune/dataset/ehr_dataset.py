@@ -1,6 +1,4 @@
 
-# For dataset format details visit: https://crfm.stanford.edu/2023/03/13/alpaca.html
-
 import copy
 import json
 
@@ -27,17 +25,14 @@ from io import StringIO
 
 def preprocess_ehr(ehr_data):
     if isinstance(ehr_data, str):
-        # If it's a single string, assume it's an XML string
         try:
             root = ET.fromstring(ehr_data)
-            # Assuming each 'visit' is a direct child of the root
             visits = [ET.tostring(visit, encoding='unicode') for visit in root.findall('visit')]
             return visits
         except ET.ParseError:
             print("Error parsing XML string. Returning original string split by double newlines.")
             return ehr_data.split('\n\n')
     elif isinstance(ehr_data, list):
-        # If it's already a list, assume each item is a visit
         return ehr_data
     else:
         raise ValueError("Unexpected EHR data format")
@@ -162,8 +157,6 @@ def query_xml_str(xml_str, filters):
                 node = remove_node(parent_node, child, remove_children=False)
 
         if parent_node.findall(".//"):
-            # After performing the filtering, add the XML-as-string to the list
-            # of parent_nodes (essentially comprises a document)
             parent_str = lxml.etree.tostring(parent_node, pretty_print=False).decode()
             parent_nodes.append(parent_str)
 
@@ -207,7 +200,7 @@ def filter_events(ehrs, codes_only=False, notes_only=False):
             )
 
         ehrs[pt_id_key] = (
-            ehr_visit_strs  # Each pt timeline is a list of visits as xml strs
+            ehr_visit_strs  
         )
 
     return ehrs
@@ -235,30 +228,23 @@ def retrieve_most_relevant_visits(ehr_visit_strs, query, target_length, tokenize
         langchain.schema.Document(page_content=doc) for doc in ehr_visit_strs
     ]
 
-    # `k` is the number of documents to retrieve
-    # We retrieve everything and just use the BM25Retriever to sort the documents
     retriever = langchain_community.retrievers.BM25Retriever.from_documents(
         langchain_docs, k=len(langchain_docs)
     )
 
-    # Invoking the retriever means the most relevant documents are sorted first
     sorted_docs = retriever.invoke(query)
 
-    # Define the regex pattern to find the start time
-    # pattern = r'start="([\d/]+ [\d:]+)"'
     pattern = r'start="([\d/]+ [\d:]+ ?[APM]{0,2})"'
 
     docs = []
     dts = []
 
-    # Find the startime of the document
     for doc in sorted_docs:
         doc_content = doc.page_content
         start_dt_match = re.search(pattern, doc_content)
         if start_dt_match:
             start_dt = start_dt_match.group(1)
             parsed = False
-            # Try different date formats
             for fmt in (
                 "%m/%d/%y %I:%M %p",
                 "%m/%d/%Y %I:%M %p",
@@ -267,7 +253,6 @@ def retrieve_most_relevant_visits(ehr_visit_strs, query, target_length, tokenize
             ):
                 try:
                     dts.append(datetime.datetime.strptime(start_dt, fmt))
-                    # print(datetime.datetime.strptime(start_dt, fmt))
                     parsed = True
                     break
                 except ValueError:
@@ -283,7 +268,6 @@ def retrieve_most_relevant_visits(ehr_visit_strs, query, target_length, tokenize
     final_docs = []
     current_length = 0
 
-    # Add documents until we exceed the allocated context length
     for i in range(len(docs)):
         doc_content = docs[i]
         doc_length = len(tokenizer.encode(doc_content))
@@ -292,20 +276,9 @@ def retrieve_most_relevant_visits(ehr_visit_strs, query, target_length, tokenize
         current_length += doc_length
         if current_length > target_length:
             break
-        # We used to also consider the datetime of the added docs so as to not truncate the most
-        # relevant document, but that adds complexity to the exposition; better to keep simple
-        # else:
-        #     # Check if final_docs is not empty and if the current doc is earlier than all other documents in final_docs
-        #     if final_docs and dts[i] < min(dt for dt, _ in final_docs):
-        #         final_docs.append((dts[i], doc_content))
-        #         break
-        #     else:
-        #         break
 
-    # Sort final_docs chronologically
     final_docs.sort(key=lambda x: x[0])
 
-    # Extract only the document content for the final output
     final_docs_content = [doc_content for _, doc_content in final_docs]
 
     return final_docs_content
@@ -320,15 +293,10 @@ class InstructionDataset(Dataset):
         if partition == "train":
             train_size = int(datasize * 0.8)
             self.ann = self.ann[:train_size]
-        # elif partition == "test":
-        #     train_size = int(datasize * 0.7)
-        #     test_size = int(datasize * 0.15)
-        #     self.ann = self.ann[train_size:train_size+test_size]
         else:
             train_size = int(datasize * 0.8)
             test_size = int(datasize * 0.2)
             self.ann = self.ann[train_size:train_size+test_size]
-            # self.ann = self.ann[train_size + test_size:train_size + 2* test_size]
 
         self.tokenizer = tokenizer
         self.dataset_config=dataset_config
@@ -344,7 +312,7 @@ class InstructionDataset(Dataset):
 
     def __getitem__(self, index):
         context_length=self.dataset_config.context_length
-        IGNORE_INDEX = -100  # The default setting in CrossEntropyLoss
+        IGNORE_INDEX = -100 
 
         ann = self.ann[index]
         if ann.get("input", "") == "":
@@ -361,28 +329,23 @@ class InstructionDataset(Dataset):
                     print("using RAG")
                     relevant_ehr = ann.get("input")
 
-                    # Preprocess the EHR data
                     preprocessed_ehr = preprocess_ehr(relevant_ehr)
 
-                    # Return a list of the most relevant visit strings
                     most_relevant_visits = retrieve_most_relevant_visits(
                         ehr_visit_strs=preprocessed_ehr,
                         query=ann.get("instruction"),
                         target_length=target_ehr_length,
                         tokenizer=tiktoken.get_encoding("cl100k_base"),
                     )
-                    # print(f"len(most_relevant_visits): {len(most_relevant_visits)}")
                     relevant_ehr = "\n".join(most_relevant_visits)
                 else:
                     relevant_ehr = "\n".join(ann.get("input"))
 
-                # Do a first pass with a fast tokenizer
                 fast_tokenizer = tiktoken.get_encoding("cl100k_base")
                 fast_encoded = fast_tokenizer.encode(relevant_ehr)
                 fast_encoded_truncated = fast_encoded[-(2 * target_ehr_length) :]
                 fast_truncated_ehr = fast_tokenizer.decode(fast_encoded_truncated)
 
-                # Then do a second pass with the actual tokenizer
                 encoded_ehr = self.tokenizer.encode(fast_truncated_ehr)
                 truncated_encoded_ehr = encoded_ehr[-target_ehr_length:]
 

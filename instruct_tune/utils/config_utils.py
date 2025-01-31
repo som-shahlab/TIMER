@@ -16,10 +16,8 @@ from transformers import default_data_collator
 from transformers.data import DataCollatorForSeq2Seq
 
 from dataset import datasets
-# from llama_recipes.configs import datasets, lora_config, llama_adapter_config, prefix_config, train_config
 from llama_recipes.configs import lora_config, llama_adapter_config, prefix_config, train_config
 from llama_recipes.data.sampler import LengthBasedBatchSampler, DistributedLengthBasedBatchSampler
-# from llama_recipes.utils.dataset_utils import DATASET_PREPROC
 from utils.dataset_utils import DATASET_PREPROC
 
 def update_config(config, **kwargs):
@@ -31,13 +29,11 @@ def update_config(config, **kwargs):
             if hasattr(config, k):
                 setattr(config, k, v)
             elif "." in k:
-                # allow --some_config.some_param=True
                 config_name, param_name = k.split(".")
                 if type(config).__name__ == config_name:
                     if hasattr(config, param_name):
                         setattr(config, param_name, v)
                     else:
-                        # In case of specialized config we can warn user
                         print(f"Warning: {config_name} does not accept parameter: {k}")
             elif isinstance(config, train_config):
                 setattr(config, k, v)

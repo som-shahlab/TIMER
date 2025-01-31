@@ -106,7 +106,6 @@ async def process_single_timeline(timeline, args, model, semaphore, windowed_jso
     print(f"Processing timeline for person_id: {person_id}")
     
     try:   
-        # Pass both the output file and window counters
         context_windows = utils.process_ehr_context(
             timeline, 
             args.ehr_context, 
@@ -236,10 +235,8 @@ async def main(args):
     start_time = time.time()
     
     merged_jsonl_file = Path(args.materialized_ehr_folder) / f"merged_timelines.jsonl"
-    # Create a directory for windowed files if it doesn't exist
     windowed_dir = Path(args.materialized_ehr_folder) / "windowed"
     windowed_dir.mkdir(parents=True, exist_ok=True)
-    # Create separate windowed file path for each prompt method
     windowed_jsonl_file = windowed_dir / f"windowed_timelines_{args.prompt_method}_{args.ehr_context}.jsonl"
     
     merge_jsonl_files(args.materialized_ehr_folder, merged_jsonl_file)

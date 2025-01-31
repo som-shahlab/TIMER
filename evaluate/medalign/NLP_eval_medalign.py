@@ -10,7 +10,6 @@ import numpy as np
 import nltk
 nltk.download('punkt_tab')
 
-# Set up logging
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
@@ -24,14 +23,12 @@ def parse_args():
     )
     parser.add_argument(
         "--path_to_reference_responses",
-        # required=True,
         type=str,
         default= "../evaluate/temporal/synth_eval_reference_answers.csv", 
         help="Path to the CSV file containing clinician-generated responses",
     )
     parser.add_argument(
         "--path_to_model_responses",
-        # required=True,
         type=str,
         default="../medalign_inference_results/",
         help=(
@@ -69,8 +66,7 @@ def parse_args():
         default=["bertscore", "meteor", "chrf", "google_bleu", "rouge"],
         help="List of evaluation metrics to calculate",
     )
-    args = parser.parse_args()  # Parse the command-line arguments
-    # main(args)
+    args = parser.parse_args()  
     return args
 
 
@@ -132,7 +128,6 @@ class Evaluator:
         selected_metrics = [m for m in self.metrics if m in self.available_metrics]
         sourceless_metrics = {}
 
-        # TODO: Improve error handling for case where prediction is null
         predictions = [x if not pd.isnull(x) else "" for x in predictions]
 
         self.load_metrics()
@@ -179,7 +174,7 @@ class Evaluator:
                     metric_value = metric_obj.compute(
                         predictions=[pred],
                         references=[ref],
-                        tokenizer=lambda s: s.split(),  # TODO: Note that we used the default tokenizer in the original manuscript
+                        tokenizer=lambda s: s.split(), 
                     )["rougeL"]
                     metrics[metric_name].append(metric_value)
             elif metric_name == "meteor":
@@ -206,7 +201,6 @@ def process_file(file_path: str, args: argparse.Namespace) -> None:
     Returns:
     None
     """
-    # TODO: We should be able to just read this in from `merged_df`
     model_name = "Meta-Llama-3-8B-Instruct"
     prompt_template_name = "generic"
 
@@ -222,21 +216,17 @@ def process_file(file_path: str, args: argparse.Namespace) -> None:
     scores = evaluator.evaluate_scores(
         references=merged_df[args.reference_response_col].tolist(),
         predictions=merged_df[args.model_response_col].tolist(),
-        # n_source_toks=args.n_source_tokens,
     )
     results_df = pd.DataFrame(scores)
 
     for col in [
         "instruction_id",
-        # "instruction",
-        # "context_length",
         "generation_length",
         "is_applicable",
         "is_sufficient",
     ]:
         results_df[col] = merged_df[col]
 
-    # TODO: Can move these two lines into the above loop, should now be handled for you by `inference.py`
     results_df["model_name"] = model_name
     results_df["prompt_template_name"] = prompt_template_name
 
@@ -244,7 +234,6 @@ def process_file(file_path: str, args: argparse.Namespace) -> None:
         [
             "model_name",
             "prompt_template_name",
-            # "context_length",
             "generation_length",
         ]
     )[args.metrics].mean()
@@ -252,7 +241,7 @@ def process_file(file_path: str, args: argparse.Namespace) -> None:
     results_str = grouped_results.to_string()
     filename = os.path.basename(args.model_name_col) + ".txt"
     
-    directory = "../medalign-clean/src/medalign/results"
+    directory = "../medalign/results"
     if not os.path.exists(directory):
         os.makedirs(directory)
     file_path = os.path.join(directory, filename)
@@ -276,7 +265,6 @@ def boostrap_results(results_df: pd.DataFrame, metric: str) -> Tuple[float, floa
         [
             "model_name",
             "prompt_template_name",
-            # "context_length",
             "generation_length",
         ]
     )[metric].mean()
@@ -297,7 +285,6 @@ def boostrap_results(results_df: pd.DataFrame, metric: str) -> Tuple[float, floa
 def main():
     args = parse_args()
     if os.path.isdir(args.path_to_model_responses):
-        # If path given is directory, process each .csv file w/in the directory
         all_results_dfs = []
         for i, filename in enumerate(sorted(os.listdir(args.path_to_model_responses))):
             if filename.endswith(".csv"):
@@ -332,7 +319,6 @@ def main():
         )
 
     else:
-        # Otherwise if path given is a single .csv file, just process it
         results_df = process_file(args.path_to_model_responses, args)
         gaps=[]
         for metric in args.metrics:
@@ -349,12 +335,10 @@ def main():
         [
             "model_name",
             "prompt_template_name",
-            # "context_length",
             "generation_length",
         ])[args.metrics].mean()
         gaps_df = pd.DataFrame([gaps], columns=args.metrics)
         
-        # Append the gaps DataFrame to the results DataFrame
         results_df = pd.concat([grouped_results, gaps_df], ignore_index=True)
         results_df.to_csv(args.output_file, index=False)
         print(f"Processed {args.path_to_model_responses}")

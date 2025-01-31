@@ -10,17 +10,13 @@ import tiktoken
 from tqdm import tqdm
 
 def parse_instruction_response_pairs(file_content):
-    # Remove any safety hazard warnings
     file_content = re.sub(r'SAFETY_HAZARD.*?(?=\n\n|\Z)', '', file_content, flags=re.DOTALL)
     
-    # Normalize newlines
     file_content = file_content.replace('\r\n', '\n').replace('\r', '\n')
     
     patterns = [
-        # Original patterns
         r'(?:^|\n)(?:[Pp]air \d+[:.]?\s*)?(?:\d+\.?\s*)?[Ii]nstruction:?\s*(.*?)\n+\s*[Rr]esponse:?\s*(.*?)(?=\n(?:[Pp]air \d+[:.]?\s*)?(?:\d+\.?\s*)?[Ii]nstruction|$)',
         r'(?:^|\n)(?:[Pp]air \d+[:.]?\s*)?(?:\*\*)?[Ii]nstruction ?\d*:?(?:\*\*)?\s*(.*?)\n+\s*(?:\*\*)?[Rr]esponse(?: \d*)?:?(?:\*\*)?\s*(.*?)(?=\n(?:[Pp]air \d+[:.]?\s*)?(?:\*\*)?[Ii]nstruction|$)',
-        # # Additional patterns
         r'(?:^|\n)(?:[Pp]air \d+[:.]?\s*)?(?:\d+\.?\s*)?[Qq]uestion:?\s*(.*?)\n+\s*[Aa]nswer:?\s*(.*?)(?=\n(?:[Pp]air \d+[:.]?\s*)?(?:\d+\.?\s*)?[Qq]uestion|$)',
         r'(?:^|\n)(?:\*\*)?(\d+)\.?\s*[Ii]nstruction:?(?:\*\*)?\s*(.*?)\n+\s*(?:\*\*)?[Rr]esponse(?: \1)?:?(?:\*\*)?\s*(.*?)(?=\n(?:\*\*)?(?:\d+)\.?\s*[Ii]nstruction|$)',
     ]
@@ -36,11 +32,10 @@ def parse_instruction_response_pairs(file_content):
             else:
                 continue
             
-            # Remove any remaining markdown formatting and extra whitespace
             instruction = re.sub(r'\*\*|\*', '', instruction).strip()
             response = re.sub(r'\*\*|\*', '', response).strip()
             
-            if instruction and response:  # Only add non-empty pairs
+            if instruction and response: 
                 element={"instruction": instruction, "output": response}
                 if element not in pairs:
                     pairs.append({"instruction": instruction, "output": response})
@@ -95,7 +90,6 @@ def trim_ehr(
     if target_ehr_length <= 0:
         return ""
     else:
-        # relevant_ehr = "\n".join(ehr)
         # Do a first pass with a fast tokenizer
         fast_tokenizer = tiktoken.get_encoding("cl100k_base")
         fast_encoded = fast_tokenizer.encode(ehr)
@@ -179,9 +173,7 @@ def process_files(instruction_folder, ehr_data_path, output_folder, context_leng
                 print('Json object', json_data_curr)
                 problematic_files.append([instruction_file, json_data_original, "parsing error"])
     print(f"Total number of objects in JSON data: {len(json_data)}")
-    # print('files causing problems', problematic_files)
 
-    # Save problematic files content
     if problematic_files:
         problematic_files_path = os.path.join(output_folder, "problematic_files.txt")
         with open(problematic_files_path, 'w') as problematic_file:
@@ -190,7 +182,6 @@ def process_files(instruction_folder, ehr_data_path, output_folder, context_leng
                 problematic_file.write(f"\n\n{'='*50}\n")
                 problematic_file.write(f"File {i}: {item[0]}\n")
                 problematic_file.write(f"{'='*50}\n")
-                # problematic_file.write(f"{item[2]}\n")
                 try:
                     if type(item[1]) == dict:
                         problematic_file.write(json.dumps(item[1], indent=4))
@@ -207,7 +198,6 @@ def process_files(instruction_folder, ehr_data_path, output_folder, context_leng
     return json_data
 
 def main():
-    # Main execution
     parser = argparse.ArgumentParser()
     parser.add_argument('--instruction_folder', type=str)
     parser.add_argument('--ehr_data_path', type=str)

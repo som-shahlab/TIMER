@@ -67,7 +67,7 @@ To change the base model which we perform PEFT fine-tuning on, simply update the
 ## Module 3: Evaluation
 
 ### MedAlign preprocessing, inference and evaluation
-To evaluate both fine-tuned and baseline models on MedAlign, we can use the followign code.
+To evaluate both fine-tuned and baseline models on MedAlign, we can use the following code.
 
 #### Preprocessing
 You will need to first preprocess the MedAlign instruction, response, EHR triplets for future inference such that it has the correct context length and generation length parameters.

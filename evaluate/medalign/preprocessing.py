@@ -350,8 +350,6 @@ def query_xml_str(xml_str, filters):
                 node = remove_node(parent_node, child, remove_children=False)
 
         if parent_node.findall(".//"):
-            # After performing the filtering, add the XML-as-string to the list
-            # of parent_nodes (essentially comprises a document)
             parent_str = lxml.etree.tostring(parent_node, pretty_print=False).decode()
             parent_nodes.append(parent_str)
 
@@ -395,7 +393,7 @@ def filter_events(ehrs, codes_only=False, notes_only=False):
             )
 
         ehrs[pt_id_key] = (
-            ehr_visit_strs  # Each pt timeline is a list of visits as xml strs
+            ehr_visit_strs  
         )
 
     return ehrs
@@ -433,7 +431,6 @@ def retrieve_most_relevant_visits(ehr_visit_strs, query, target_length, tokenize
     sorted_docs = retriever.invoke(query)
 
     # Define the regex pattern to find the start time
-    # pattern = r'start="([\d/]+ [\d:]+)"'
     pattern = r'start="([\d/]+ [\d:]+ ?[APM]{0,2})"'
 
     docs = []
@@ -478,15 +475,6 @@ def retrieve_most_relevant_visits(ehr_visit_strs, query, target_length, tokenize
         current_length += doc_length
         if current_length > target_length:
             break
-        # We used to also consider the datetime of the added docs so as to not truncate the most
-        # relevant document, but that adds complexity to the exposition; better to keep simple
-        # else:
-        #     # Check if final_docs is not empty and if the current doc is earlier than all other documents in final_docs
-        #     if final_docs and dts[i] < min(dt for dt, _ in final_docs):
-        #         final_docs.append((dts[i], doc_content))
-        #         break
-        #     else:
-        #         break
 
     # Sort final_docs chronologically
     final_docs.sort(key=lambda x: x[0])

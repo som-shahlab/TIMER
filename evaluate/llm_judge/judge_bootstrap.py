@@ -38,7 +38,7 @@ if __name__ == "__main__":
     parser.add_argument('--judge_filepath', required=False, type=str)
     parser.add_argument('--metric', required=False, type=str, default="correctness") #or correctness
     args = parser.parse_args()
-    user="aunell"
+    user="name"
 
     if args.judge_filepath:
         return_bootstrap(args.judge_filepath, args.metric)

@@ -126,13 +126,10 @@ Ensure your output is valid JSON that can be parsed programmatically. Do not inc
 def evaluate_response(ehr_data: str, instruction: str, model_response: str, reference_answer: str, context_length:int) -> Dict[str, Any]:
     TOTAL_CONTEXT_LENGTH = context_length
     prompt=create_prompt("", "", "", "")
-    EVALUATION_PROMPT_TOKENS = count_tokens(prompt)  # Estimate; adjust based on actual prompt
+    EVALUATION_PROMPT_TOKENS = count_tokens(prompt)  
     
-    # Ensure all inputs are strings and log their types
     for name, value in [("ehr_data", ehr_data), ("instruction", instruction), 
                         ("model_response", model_response), ("reference_answer", reference_answer)]:
-        # print(f"Type of {name}: {type(value)}")
-        # print(f"Value of {name}: {value}")
         if value is None or (isinstance(value, float) and math.isnan(value)):
             print(f"Warning: {name} is None or NaN")
             value = "[No response provided]"
@@ -161,7 +158,6 @@ def evaluate_response(ehr_data: str, instruction: str, model_response: str, refe
         reference_answer_tokens
     )
     
-    # Ensure we have at least some tokens for the EHR
     available_ehr_tokens = max(available_ehr_tokens, 100)
 
     # Trim the EHR data
@@ -237,7 +233,6 @@ def format_evaluation(evaluation):
     # If the expected structure is not found, try to extract scores from the raw evaluation
     if all(v is None for v in [formatted['correctness']['score'], formatted['completeness']['score']]):
         formatted['raw_evaluation'] = evaluation
-        # Attempt to find scores in the raw evaluation
         for key, value in evaluation.items():
             if 'correct' in key.lower():
                 formatted['correctness']['score'] = extract_score(value)
@@ -303,7 +298,6 @@ def main():
         results = []
         processed_ids = set()
 
-    # Set up the timeout signal
     signal.signal(signal.SIGALRM, timeout_handler)
 
     for _, row in reference_data_annotator1.iterrows():
@@ -314,7 +308,7 @@ def main():
             continue
 
         try:
-            signal.alarm(300)  # 5-minute timeout
+            signal.alarm(300)  
 
             if instruction_id in model_output_dict:
                 ehr_data = ehr_cache.get(row['filename']) or load_ehr_data(row['filename'], EHR_DIRECTORY)
@@ -337,14 +331,13 @@ def main():
                     })
                     print(f"Evaluated instruction {instruction_id}")
 
-                    # Save results after each evaluation
                     with open(OUTPUT_JSON_FILE, "w") as f:
                         json.dump({
                             "average_scores": calculate_average_scores(results),
                             "detailed_results": results
                         }, f, indent=2)
 
-            signal.alarm(0)  # Reset the alarm
+            signal.alarm(0) 
 
         except TimeoutError:
             print(f"Evaluation timed out for instruction {instruction_id}")
