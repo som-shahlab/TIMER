@@ -33,7 +33,7 @@ python sample_patients.py --sampling_method random  --sample_n 5
 # parse LLM generated response and convert the instruction set to alpaca format for SFT
 python alpaca_format.py --instruction_folder {TODO} --output_folder {TODO} --ehr_data_path {TODO} --context_length {TODO}
 ```
-Alternatively, check out the file `alpaca_format.sh` for all default arguments and paths on Carina.
+Alternatively, check out the file `alpaca_format.sh` for all default arguments and paths.
 
 The output JSON file `./data/ehr_data.json` is a list of dictionaries, each dictionary contains the following fields:
 
