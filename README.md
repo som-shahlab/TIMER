@@ -1,6 +1,6 @@
 # TIMER-private
 
-This repository contains the infrastructure for generating synthetic instruction set from EHR, instruct-tuning Llama models, and performing evaluation.
+This repository contains the infrastructure for generating synthetic instruction set from EHR, instruct-tuning models, and performing evaluation.
 
 ## Requirements 
 -`conda env create -f environment.yml`
@@ -55,26 +55,20 @@ Below is an instruction that describes a task, paired with an input that provide
 ```
 
 
-## Module 3: Instruction-Tuning (SFT)
+## Module 2: Instruction-Tuning (SFT)
 The framework for instruction-tuning is located in the `./instruct_tune/` folder.
 
-`instruct_tune/tune_eval.py`: instruct-tune Llama-3 with the generated instruction set and include short context validation on MMLU college medicine and clinical knowledge benchmarks.
+`instruct_tune/tune_llama_recipes.py`: instruct-tune Llama-3 with the generated instruction set and include short context validation on MMLU college medicine and clinical knowledge benchmarks.
 
 The fine-tuned model will be saved in the `--output_dir` folder (which is `./models` folder under your project path) for inference and evaluation. The hyperparameters were found via wandb sweep to be optimal for our current set-up.
 
 To change the base model which we perform PEFT fine-tuning on, simply update the `--model_name` parameter. To use wandb, add `--use_wandb` to the parameters. You'll need to log in to wandb. You can do this by running `wandb login` and then entering your API key when prompted. The entity and project is set up in the script. 
 
-A bash script to simplify training can be found at `tune_llama_recipes.sh` with default arguments.
-
-## Module 4: Evaluation
+## Module 3: Evaluation
 
 ### MedAlign preprocessing, inference and evaluation
-To evaluate both fine-tuned and baseline models on MedAlign, we can do the following. 
-```Bash
-cd evaluate/medalign
-sbatch medalign_eval.sh
-```
-The sbatch script contains the necessary python scripts to run the full preprocessing, inference, evaluation pipeline as described below.
+To evaluate both fine-tuned and baseline models on MedAlign, we can use the followign code.
+
 #### Preprocessing
 You will need to first preprocess the MedAlign instruction, response, EHR triplets for future inference such that it has the correct context length and generation length parameters.
 
