@@ -20,7 +20,7 @@ python sample_patients.py --sampling_method random  --sample_n 5
 
 #### Step 2: Instruction Set Generation with EHR + Prompts
 
-`async_ehr_prompting.py` uses the async io to call the API and generate the instruction set, based on the materialized ehr records. The script supports three prompting methods: `general` and `persona`. We are generating based on the context window of 16k. 
+`generator.py` uses the async io to call the API and generate the instruction set, based on the materialized ehr records. The generation is based on a context window of 16k. 
 
 #### Step 3: Formatting json instruction-response pairs + EHR files
 `python alpaca_format.py`: Parse the generated jsons and convert the synthetic instruction-response pairs into the format of Alpaca instructions (more details refer to [alpaca_data.json](https://github.com/tatsu-lab/stanford_alpaca?tab=readme-ov-file#data-release)):
@@ -54,8 +54,10 @@ Below is an instruction that describes a task, paired with an input that provide
 ### Response:
 ```
 
+## Module 2: Instruction Selection
+The script `temporal_selection.py` supports sampling instruction sets that follow different temporal distributions: `Recency-focused`, `Edge-focused`, and `Uniformly distributed`. The script `balanced_bench_sampling.py` performs subset sampling that follows a uniform distribution.
 
-## Module 2: Instruction-Tuning (SFT)
+## Module 3: Instruction-Tuning (IFT)
 The framework for instruction-tuning is located in the `./instruct_tune/` folder.
 
 `instruct_tune/tune_llama_recipes.py`: instruct-tune Llama-3 with the generated instruction set and include short context validation on MMLU college medicine and clinical knowledge benchmarks.
@@ -64,7 +66,8 @@ The fine-tuned model will be saved in the `--output_dir` folder (which is `./mod
 
 To change the base model which we perform PEFT fine-tuning on, simply update the `--model_name` parameter. To use wandb, add `--use_wandb` to the parameters. You'll need to log in to wandb. You can do this by running `wandb login` and then entering your API key when prompted. The entity and project is set up in the script. 
 
-## Module 3: Evaluation
+
+## Module 4: Evaluation
 
 ### MedAlign preprocessing, inference and evaluation
 To evaluate both fine-tuned and baseline models on MedAlign, we can use the following code.
@@ -111,3 +114,14 @@ In this command:
 - `--model_b_responses`: Path to the CSV file containing responses from model B.
 - `--reference_answers`: Path to the CSV file containing the reference answers.
 - `--output_file`: Path where the results of the head-to-head evaluation will be saved, with `{model_a}` and `{model_b}` replaced by the actual model names.
+
+### Citation
+```bibtex
+@article{cui2025timer,
+  title={TIMER: Temporal Instruction Modeling and Evaluation for Longitudinal Clinical Records},
+  author={Cui, Hejie and Unell, Alyssa and Chen, Bowen and Fries, Jason Alan and Alsentzer, Emily and Koyejo, Sanmi and Shah, Nigam},
+  journal={arXiv preprint arXiv:2503.04176},
+  year={2025}
+}
+```
+
