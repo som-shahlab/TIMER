@@ -1,4 +1,4 @@
-# TIMER-private
+# TIMER: Temporal Instruction Modeling and Evaluation for Longitudinal Clinical Records
 
 Authors: [Hejie Cui*](https://hejiecui.com/), [Alyssa Unell*](https://aunell.github.io/), [Bowen Chen](https://bowen118.github.io/), [Jason Alan Fries](https://web.stanford.edu/~jfries/), [Emily Alsentzer](https://emilyalsentzer.com/), [Sanmi Koyejo](https://stairlab.stanford.edu/members/sanmi_koyejo.html), [Nigam Shah](https://profiles.stanford.edu/nigam-shah), 
 
