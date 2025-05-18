@@ -128,29 +128,6 @@ In this command:
 - `--reference_answers`: Path to the CSV file containing the reference answers.
 - `--output_file`: Path where the results of the head-to-head evaluation will be saved, with `{model_a}` and `{model_b}` replaced by the actual model names.
 
-<!-- ## Experiments -->
-
-<!-- ### Main Results
-We evaluate TIMER on both human-annotated and model-generated benchmarks:  
-📈 +7.3% improvement on physician-generated MedAlign benchmark  
-📈 +9.2% improvement on temporal reasoning on TIMER-Eval   
-
-![main_results](assets/main_performance.png)
-
-### "Lost-in-the-Middle" Effect 
-Text generation conditioned on a long-context input demonstrates a lost in the middle effect– indicating that we need to consider how we sample from our distribution for full longitudinal coverage. 
-
-<p align="center">  
-    <img src="assets/distribution_generation.png" width="50%">
-    <!-- Text. -->
-<!-- </p>
-
-### Impact of Temporal Distribution Strategies 
-To evaluate the impact of different temporal distribution strategies for instruction tuning on EHR reasoning tasks, we conducted evaluations on 
-benchmarks with three different temporal distributions: (1) the human-annotated benchmark MedAlign which shows a recency-focused distribution, (2) an edge-focused TIMER-Eval where evaluation instruction-response pairs are randomly sampled from the natural model-generated distribution and (3) a uniform-distributed TIMER-Eval where the evaluation instruction-response pairs are sampled with equal frequency across all patient visits. --> -->
-
-<!-- ![temporal_results](assets/temporal_results.png) -->
-
 ## Acknowledgments
 We thank [llama-cookbook](https://github.com/meta-llama/llama-cookbook) for open-sourcing the model training frameworks that we used in this work.
 
